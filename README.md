@@ -1,21 +1,31 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Focus Intent
 
-# Run and deploy your AI Studio app
+Focus Intent is a mindful app launching interceptor that helps you break digital habits.
+Instead of directly opening distractive apps (like social media), Focus Intent intercepts the launch and asks "Are you sure you want to open this app?" in a calming, breathing window. 
 
-This contains everything you need to run your app locally.
+## Features
+- **App Intercepting**: Blocks selected apps from opening immediately.
+- **Breathing Window**: Take a moment to breathe before deciding to continue.
+- **Widgets**:
+  - Focus Stats widget to see intercepted apps.
+  - Blocked Apps widget for a quick look at your restricted apps.
+- **Detailed Stats**: Keep track of intercepts, prevented launches, and more.
+- **Screen Time**: Track and analyze your digital wellbeing insights.
+- **Responsive Layout**: Designed for phones, foldables, and tablets.
 
-View your app in AI Studio: https://ai.studio/apps/b97020cf-a455-4d11-b5cb-da99d03b81d5
+## Version 1.0.0
+- Refined app interception logic seamlessly across device configurations.
+- Fixed widget updates. 
+- Fixed the logic for recent apps behavior to not continuously intercept for canceled launches.
 
-## Run Locally
+## Permissions Needed
+- **Accessibility Service**: Required to detect which apps are launched to intercept them.
+- **Usage Access**: Required to calculate screen time statistics.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+## Building the project
+Tested with Android Gradle Plugin and Jetpack Compose.
+Open in Android Studio or build via the command line:
 
-
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+```
+./gradlew assembleDebug
+```

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Focus Intent</string>
+    <string name="accessibility_service_description">Required to detect when you open a distracting app so Focus Intent can intervene.</string>
+    <string name="widget_icon_desc">Shortcut to open Focus Dashboard</string>
+    <string name="widget_stats_desc">Today\'s Focus Stats</string>
+    <string name="widget_stats_label">Focus Stats</string>
+    <string name="widget_blocked_apps_label">Blocked Apps</string>
+    <string name="widget_blocked_apps_desc">Shows your currently blocked apps.</string>
+</resources>

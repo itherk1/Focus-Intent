@@ -28,6 +28,7 @@ import com.example.data.AppRepository
 import com.example.ui.breathe.BreathingExerciseScreen
 import com.example.ui.home.AppSelectionScreen
 import com.example.ui.home.DashboardScreen
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -69,6 +70,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+        
         val database = AppDatabase.getDatabase(applicationContext)
         val appRepo = AppRepository(database.intentDao())
         val configRepo = AppConfigRepository(applicationContext)
@@ -83,14 +90,23 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val focusViewModel: FocusViewModel = viewModel(factory = factory)
                     
-                    var startDest by remember { mutableStateOf(if (intent.getStringExtra("intercept_package") != null) "breathe?appName=${Uri.encode(intent.getStringExtra("intercept_package"))}" else "dashboard") }
+                    var startDest by remember { 
+                        mutableStateOf(
+                            if (intent.getStringExtra("intercept_package") != null) {
+                                val pkg = intent.getStringExtra("intercept_package")!!
+                                val cont = intent.getIntExtra("continuous_minutes", 0)
+                                "breathe?appName=${Uri.encode(pkg)}&continuous=$cont"
+                            } else "dashboard"
+                        ) 
+                    }
 
                     val activity = androidx.compose.ui.platform.LocalContext.current as? MainActivity
                     LaunchedEffect(activity) {
                         activity?._newIntents?.collect { newIntent ->
                             val pkg = newIntent.getStringExtra("intercept_package")
                             if (pkg != null) {
-                                val route = "breathe?appName=${Uri.encode(pkg)}"
+                                val cont = newIntent.getIntExtra("continuous_minutes", 0)
+                                val route = "breathe?appName=${Uri.encode(pkg)}&continuous=$cont"
                                 navController.navigate(route) {
                                     launchSingleTop = true
                                 }
@@ -169,11 +185,12 @@ class MainActivity : ComponentActivity() {
                             }
                             
                             androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                NavHost(
-                                    navController = navController, 
-                                    startDestination = startDest,
-                                    modifier = Modifier.fillMaxSize().widthIn(max = 840.dp),
-                                    enterTransition = {
+                                androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+                                    NavHost(
+                                        navController = navController, 
+                                        startDestination = startDest,
+                                        modifier = Modifier.weight(1f).widthIn(max = 840.dp),
+                                        enterTransition = {
                                     slideInHorizontally(
                                         initialOffsetX = { it },
                                         animationSpec = tween(300)
@@ -246,10 +263,15 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable(
-                                    route = "breathe?appName={appName}",
-                                    arguments = listOf(navArgument("appName") { type = NavType.StringType; defaultValue = "Unknown App" })
+                                    route = "breathe?appName={appName}&continuous={continuous}",
+                                    arguments = listOf(
+                                        navArgument("appName") { type = NavType.StringType; defaultValue = "Unknown App" },
+                                        navArgument("continuous") { type = NavType.IntType; defaultValue = 0 }
+                                    )
                                 ) { backStackEntry ->
                                     val packageName = backStackEntry.arguments?.getString("appName") ?: "Unknown App"
+                                    val continuousMinutes = backStackEntry.arguments?.getInt("continuous") ?: 0
+                                    
                                     val localContext = androidx.compose.ui.platform.LocalContext.current
                                     val displayAppName = remember(packageName) {
                                         try {
@@ -262,14 +284,20 @@ class MainActivity : ComponentActivity() {
                                     }
                                     BreathingExerciseScreen(
                                         appName = displayAppName,
+                                        continuousUsageMinutes = continuousMinutes,
                                         onFinish = { didContinue ->
-                                            focusViewModel.recordSession(displayAppName, packageName, 10, didContinue)
+                                            if (continuousMinutes == 0) {
+                                                focusViewModel.recordSession(displayAppName, packageName, 10, didContinue)
+                                            }
+                                            
                                             if (didContinue) {
-                                                // Try to launch the app
-                                                val launchIntent = localContext.packageManager.getLaunchIntentForPackage(packageName)
-                                                if (launchIntent != null) {
-                                                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                                    localContext.startActivity(launchIntent)
+                                                if (continuousMinutes == 0) {
+                                                    // Try to launch the app
+                                                    val launchIntent = localContext.packageManager.getLaunchIntentForPackage(packageName)
+                                                    if (launchIntent != null) {
+                                                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                                        localContext.startActivity(launchIntent)
+                                                    }
                                                 }
                                             } else {
                                                 val homeIntent = Intent(Intent.ACTION_MAIN).apply {
@@ -289,6 +317,16 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                                    if (showNavigation) {
+                                        Text(
+                                            text = "Created with ❤️ by Rishabh Kankane",
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                } // Close Column
                             } // Close Box
                         }
                     }

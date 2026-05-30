@@ -13,6 +13,12 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.1.0
+- Added continuous app usage tracking to send a gentle notification after 15 minutes of uninterrupted use.
+- Reintroduced the breathing intercept window automatically after 30 and 60 minutes of continuous usage to prompt a break.
+- Added developer watermark "Created with ❤️ by Rishabh Kankane" for personal app identity at the bottom of the navigation screens.
+- Updated app to prompt for post notification permissions on Android 13+.
+
 ## Version 1.0.0
 - Refined app interception logic seamlessly across device configurations.
 - Fixed widget updates. 

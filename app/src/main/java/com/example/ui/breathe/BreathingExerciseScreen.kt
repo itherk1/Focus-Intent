@@ -24,9 +24,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun BreathingExerciseScreen(
     appName: String,
+    continuousUsageMinutes: Int = 0,
     onFinish: (Boolean) -> Unit // true if opening, false if skipping
 ) {
-    var secondsLeft by remember { mutableIntStateOf(10) }
+    var secondsLeft by remember { mutableIntStateOf(if (continuousUsageMinutes >= 60) 20 else 10) }
     
     LaunchedEffect(Unit) {
         while (secondsLeft > 0) {
@@ -80,7 +81,7 @@ fun BreathingExerciseScreen(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Before you open $appName",
+                    text = if (continuousUsageMinutes > 0) "You've continuously used $appName for $continuousUsageMinutes minutes" else "Before you open $appName",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -133,13 +134,13 @@ fun BreathingExerciseScreen(
                         modifier = Modifier.fillMaxWidth().height(64.dp),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Text("I don't need this app right now", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text(if (continuousUsageMinutes > 0) "I'll close the app" else "I don't need this app right now", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     }
                     TextButton(
                         onClick = { onFinish(true) }, 
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
-                        Text("Continue to $appName", style = MaterialTheme.typography.bodyLarge)
+                        Text(if (continuousUsageMinutes > 0) "Continue using $appName" else "Continue to $appName", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }

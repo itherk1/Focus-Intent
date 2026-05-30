@@ -53,9 +53,9 @@ class FocusViewModel(
         }
     }
 
-    fun recordSession(appName: String, packageName: String, delaySeconds: Int, userContinued: Boolean) {
+    fun recordSession(appName: String, packageName: String, delaySeconds: Int, userContinued: Boolean, allowanceMinutes: Int = 15) {
         if (userContinued) {
-            configRepository.allowAppTemporarily(packageName, 15) // Allow for 15 minutes immediately
+            configRepository.allowAppTemporarily(packageName, allowanceMinutes) 
         }
         viewModelScope.launch {
             appRepository.insertSession(

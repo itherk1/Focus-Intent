@@ -23,8 +23,26 @@ class FocusViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    private val todayStartTime = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
-    private val weekStartTime = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+    private val todayStartTime: Long
+        get() {
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            return calendar.timeInMillis
+        }
+        
+    private val weekStartTime: Long
+        get() {
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(java.util.Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            return calendar.timeInMillis
+        }
     
     val totalIntercepts = appRepository.getSessionsCountSince(todayStartTime)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)

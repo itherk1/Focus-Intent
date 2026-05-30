@@ -35,14 +35,49 @@ fun DashboardScreen(
     blockedApps: Set<String>,
     onManageBlockedApps: () -> Unit,
     onTestIntercept: (String) -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    onOpenInsights: () -> Unit
 ) {
     val context = LocalContext.current
     var isAccessibilityEnabled by remember { mutableStateOf(true) }
 
+    var showRestrictedSettingsHelp by remember { mutableStateOf(false) }
+
     // Check accessibility status when screen is displayed
     LaunchedEffect(Unit) {
         isAccessibilityEnabled = AccessibilityHelper.isAccessibilityServiceEnabled(context, com.example.service.FocusAccessibilityService::class.java)
+    }
+
+    if (showRestrictedSettingsHelp) {
+        AlertDialog(
+            onDismissRequest = { showRestrictedSettingsHelp = false },
+            title = { Text("How to Enable Accessibility") },
+            text = {
+                Column {
+                    Text("Because you installed this app outside the Play Store, Android restricts its accessibility permission for security.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("To fix this (Android 13+):", fontWeight = FontWeight.Bold)
+                    Text("1. Open your device Settings app.")
+                    Text("2. Go to 'Apps' > 'Focus Intent'.")
+                    Text("3. Tap the 3 dots (⋮) in the top-right corner.")
+                    Text("4. Tap 'Allow restricted settings'.")
+                    Text("5. Then come back here and turn on Accessibility.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showRestrictedSettingsHelp = false
+                    AccessibilityHelper.openAccessibilitySettings(context) 
+                }) {
+                    Text("Go to Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestrictedSettingsHelp = false }) {
+                    Text("Dismiss")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -69,12 +104,12 @@ fun DashboardScreen(
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        modifier = Modifier.fillMaxWidth().clickable { AccessibilityHelper.openAccessibilitySettings(context) }
+                        modifier = Modifier.fillMaxWidth().clickable { showRestrictedSettingsHelp = true }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Accessibility Service Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Tap here to enable it in Settings so Focus Intent can detect when you open distractions.", color = MaterialTheme.colorScheme.onErrorContainer)
+                            Text("Tap here for instructions on how to enable it if your device blocks the setting (Android 13+).", color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 }
@@ -82,7 +117,7 @@ fun DashboardScreen(
 
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     shape = RoundedCornerShape(24.dp)
                 ) {

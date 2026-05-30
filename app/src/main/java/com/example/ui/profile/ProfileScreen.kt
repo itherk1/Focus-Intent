@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 
 import com.example.data.IntentSession
 import java.util.Calendar
@@ -29,7 +30,8 @@ import java.util.concurrent.TimeUnit
 fun ProfileScreen(
     totalInterceptsWeek: Int,
     preventedWeek: Int,
-    historicalSessions: List<IntentSession>
+    historicalSessions: List<IntentSession>,
+    onOpenInsights: () -> Unit
 ) {
     val context = LocalContext.current
     
@@ -144,7 +146,7 @@ fun ProfileScreen(
                 val colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.error)
                 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(24.dp)
                 ) {

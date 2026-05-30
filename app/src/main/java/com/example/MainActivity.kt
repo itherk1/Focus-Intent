@@ -235,9 +235,10 @@ class MainActivity : ComponentActivity() {
                                         blockedApps = apps,
                                         onManageBlockedApps = { navController.navigate("apps") },
                                         onTestIntercept = { appName -> 
-                                            navController.navigate("breathe?appName=${Uri.encode(appName)}") 
+                                            navController.navigate("breathe?appName=${Uri.encode(appName)}&continuous=0") 
                                         },
-                                        onOpenProfile = { navController.navigate("profile") }
+                                        onOpenProfile = { navController.navigate("profile") },
+                                        onOpenInsights = { navController.navigate("insights") }
                                     )
                                 }
                                 composable("history") {
@@ -259,7 +260,15 @@ class MainActivity : ComponentActivity() {
                                     ProfileScreen(
                                         totalInterceptsWeek = interceptsWeek,
                                         preventedWeek = preventedWeek,
-                                        historicalSessions = history
+                                        historicalSessions = history,
+                                        onOpenInsights = { navController.navigate("insights") }
+                                    )
+                                }
+                                composable("insights") {
+                                    val history by focusViewModel.historicalSessions.collectAsState()
+                                    com.example.ui.profile.InsightsScreen(
+                                        historicalSessions = history,
+                                        onBack = { navController.popBackStack() }
                                     )
                                 }
                                 composable(

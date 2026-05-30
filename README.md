@@ -13,6 +13,13 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.2.0
+- Added a Detailed Insights screen showing app-by-app breakdown of attempts, avoided launches, and continuations, along with personalized improvement tips.
+- Improved "Today" stats calculation to reliably refresh at 12 AM.
+- Refined continuous tracking to prevent unexpected breathing windows while using in-app share menus (like Instagram Reels).
+- Added an interactive help dialog guiding users through Android 13+ "Restricted Settings" to simplify enabling the Accessibility Service.
+- Updated Navigation bar icons and UI styling for consistency.
+
 ## Version 1.1.0
 - Added continuous app usage tracking to send a gentle notification after 15 minutes of uninterrupted use.
 - Reintroduced the breathing intercept window automatically after 30 and 60 minutes of continuous usage to prompt a break.

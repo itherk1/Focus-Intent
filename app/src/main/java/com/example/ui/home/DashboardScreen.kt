@@ -32,6 +32,7 @@ fun DashboardScreen(
     preventedLaunches: Int,
     totalInterceptsWeek: Int,
     preventedLaunchesWeek: Int,
+    historicalSessions: List<IntentSession>,
     blockedApps: Set<String>,
     onManageBlockedApps: () -> Unit,
     onTestIntercept: (String) -> Unit,
@@ -42,6 +43,28 @@ fun DashboardScreen(
     var isAccessibilityEnabled by remember { mutableStateOf(true) }
 
     var showRestrictedSettingsHelp by remember { mutableStateOf(false) }
+
+    var hasUsagePermission by remember { mutableStateOf(com.example.utils.UsageStatsHelper.hasUsageStatsPermission(context)) }
+    var todayUsageStats by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+    
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasUsagePermission = com.example.utils.UsageStatsHelper.hasUsageStatsPermission(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    
+    LaunchedEffect(hasUsagePermission) {
+        if (hasUsagePermission) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                todayUsageStats = com.example.utils.UsageStatsHelper.getTodayUsageStats(context)
+            }
+        }
+    }
 
     // Check accessibility status when screen is displayed
     LaunchedEffect(Unit) {
@@ -117,7 +140,7 @@ fun DashboardScreen(
 
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenInsights).animateContentSize(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     shape = RoundedCornerShape(24.dp)
                 ) {
@@ -125,8 +148,37 @@ fun DashboardScreen(
                         Text("Today's Focus", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Spacer(modifier = Modifier.height(8.dp))
                         val successRate = if (totalIntercepts > 0) ((preventedLaunches.toFloat() / totalIntercepts.toFloat()) * 100).toInt() else 0
-                        val savedTimeSeconds = preventedLaunches * 300 // estimate 5 min saved per prevention
-                        val savedTimeMinutes = savedTimeSeconds / 60
+                        
+                        val startOfDay = remember {
+                            val cal = java.util.Calendar.getInstance()
+                            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                            cal.set(java.util.Calendar.MINUTE, 0)
+                            cal.set(java.util.Calendar.SECOND, 0)
+                            cal.set(java.util.Calendar.MILLISECOND, 0)
+                            cal.timeInMillis
+                        }
+                        
+                        val savedTimeMinutes = remember(historicalSessions, todayUsageStats) {
+                            val todaysSessions = historicalSessions.filter { it.timestamp >= startOfDay }
+                            var totalSavedMinutes = 0L
+                            val preventedGroups = todaysSessions.filter { !it.userContinued }.groupBy { it.appName }
+                            
+                            preventedGroups.forEach { (appName, preventedList) ->
+                                val count = preventedList.size
+                                val timeSpentMs = todayUsageStats[appName] ?: 0L
+                                val continuedCount = todaysSessions.count { it.userContinued && it.appName == appName }
+                                
+                                val avgSessionMs = if (continuedCount > 0 && timeSpentMs > 0) {
+                                    timeSpentMs / continuedCount
+                                } else {
+                                    300_000L // estimate 5 min saved per prevention
+                                }
+                                
+                                totalSavedMinutes += (count * (avgSessionMs / 60000))
+                            }
+                            totalSavedMinutes
+                        }
+                        
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text("$successRate%", style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Text(" avoided", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp, start = 8.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
@@ -148,20 +200,51 @@ fun DashboardScreen(
             
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile).animateContentSize(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Text("This Week", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         Spacer(modifier = Modifier.height(8.dp))
+                        val startOfWeek = remember {
+                            val cal = java.util.Calendar.getInstance()
+                            cal.set(java.util.Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+                            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                            cal.set(java.util.Calendar.MINUTE, 0)
+                            cal.set(java.util.Calendar.SECOND, 0)
+                            cal.set(java.util.Calendar.MILLISECOND, 0)
+                            cal.timeInMillis
+                        }
+                        
+                        val savedTimeMinutesWeek = remember(historicalSessions, todayUsageStats) {
+                            val weeksSessions = historicalSessions.filter { it.timestamp >= startOfWeek }
+                            var totalSavedMinutes = 0L
+                            val preventedGroups = weeksSessions.filter { !it.userContinued }.groupBy { it.appName }
+                            
+                            preventedGroups.forEach { (appName, preventedList) ->
+                                val count = preventedList.size
+                                val timeSpentMs = todayUsageStats[appName] ?: 0L 
+                                val continuedCount = weeksSessions.count { it.userContinued && it.appName == appName }
+                                
+                                val avgSessionMs = if (continuedCount > 0 && timeSpentMs > 0) {
+                                    timeSpentMs / continuedCount // Uses today's running averge even for week
+                                } else {
+                                    300_000L
+                                }
+                                
+                                totalSavedMinutes += (count * (avgSessionMs / 60000))
+                            }
+                            totalSavedMinutes
+                        }
+                        
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
                                 Text("$preventedLaunchesWeek / $totalInterceptsWeek", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Text("Apps Dodged", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("~${(preventedLaunchesWeek * 300) / 60} min", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("~${savedTimeMinutesWeek} min", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 Text("Time Saved", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
                             }
                         }

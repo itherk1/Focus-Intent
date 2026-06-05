@@ -13,6 +13,29 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.3.1
+- **Tablet & Foldable Optimization**: Revamped History, Apps, and Profile screens to use responsive `LazyVerticalGrid` layouts, utilizing the full width of large screens.
+- **Scroll Fix for Profile**: Added scroll support and grid wrapping to the Profile screen to ensure diagrams are no longer clipped or excessively large on portrait mode.
+- **Dynamic "Time Saved"**: Replaced the static 5-minute estimate with dynamic, app-specific calculation. The app now queries your actual average session length per application (via UsageStats) to accurately calculate the real time saved by blocking an app contextually.
+
+## Version 1.3.0
+- **Enhanced Weekly Chart**: Added X-axis day labels (Today, 1d, 2d, etc.) and a clear Y-axis metric scale to make spikes easily readable.
+- **Dynamic Color Palette**: Overhauled the Today's Breakdown pie chart to generate an unlimited spectrum of theme-aligned colors based on the number of blocked apps (fixing the 4-color limit).
+- **Smarter App Tracking (Instagram bug fix)**: Improved the Accessibility Service loop so returning to an actively used blocked app (or momentarily triggering an in-app keyboard/share sheet) no longer resets the breathing window timer.
+- **Personalized Insights**: Upgraded the Insights engine to generate dynamic, personality-driven tips based on specific app names, success rates, and behavior thresholds (e.g. "Zen Master" vs "Minor Leaks").
+- **UI & Performance Optimizations**: Added smooth `animateContentSize` transitions to dashboard cards and ensured the Room database preserves historical data seamlessly across updates without destructive migrations.
+
+## Version 1.2.2
+- Made the Weekly Focus Chart on the Profile screen clickable, allowing direct navigation into Detailed Insights for the week.
+
+## Version 1.2.1
+- Fixed continuous tracking window triggers (now accurately tracks 30, 60, 90 minute milestones).
+- Sorted blocked apps list to pin selected targets at the top with spring animations.
+- Prevented double-loading and reloading of active navigation tabs.
+- Added full day-by-day historic navigation inside Detailed Insights.
+- Fixed home screen widgets not populating properly on initial addition.
+- Linked Today's Focus stats widget directly to Detailed Insights.
+
 ## Version 1.2.0
 - Added a Detailed Insights screen showing app-by-app breakdown of attempts, avoided launches, and continuations, along with personalized improvement tips.
 - Improved "Today" stats calculation to reliably refresh at 12 AM.

@@ -29,6 +29,8 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.example.MainActivity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.firstOrNull
 
 class FocusStatsWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -51,7 +53,10 @@ fun StatsWidgetContent(totalInterceptsDay: Int, preventedDay: Int) {
         modifier = GlanceModifier.fillMaxSize()
             .background(Color(0xFF1D1B20)) // Dark mode default background
             .padding(16.dp)
-            .clickable(actionStartActivity(Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })),
+            .clickable(actionStartActivity(Intent(context, MainActivity::class.java).apply { 
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("open_insights", true)
+            })),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -92,4 +97,24 @@ fun StatsWidgetContent(totalInterceptsDay: Int, preventedDay: Int) {
 
 class FocusStatsWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = FocusStatsWidget()
+    
+    override fun onUpdate(context: Context, appWidgetManager: android.appwidget.AppWidgetManager, appWidgetIds: IntArray) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            val todayStart = calendar.timeInMillis
+            
+            val db = com.example.data.AppDatabase.getDatabase(context)
+            val repo = com.example.data.AppRepository(db.intentDao())
+            
+            val total = repo.getSessionsCountSince(todayStart).firstOrNull() ?: 0
+            val prevented = repo.getPreventedLaunchesSince(todayStart).firstOrNull() ?: 0
+            
+            updateFocusStatsWidget(context, total, prevented)
+        }
+    }
 }

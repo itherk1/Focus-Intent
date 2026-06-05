@@ -12,7 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.Icons
 import com.example.data.IntentSession
 import java.util.Calendar
@@ -20,18 +21,19 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) {
-    val todaysData = remember(historicalSessions) {
-        val startOfDay = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        historicalSessions.filter { it.timestamp >= startOfDay }
+    var activeDate by remember { mutableStateOf(Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis) }
+
+    val activeDayData = remember(historicalSessions, activeDate) {
+        historicalSessions.filter { it.timestamp >= activeDate && it.timestamp < activeDate + 86400000L }
     }
 
-    val appStats = remember(todaysData) {
-        todaysData.groupBy { it.appName }.mapValues { entry ->
+    val appStats = remember(activeDayData) {
+        activeDayData.groupBy { it.appName }.mapValues { entry ->
             val total = entry.value.size
             val skipped = entry.value.count { !it.userContinued }
             val opened = entry.value.count { it.userContinued }
@@ -39,27 +41,41 @@ fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) 
         }.values.toList().sortedByDescending { it.total }
     }
     
-    val totalIntercepts = todaysData.size
-    val totalSkipped = todaysData.count { !it.userContinued }
+    val totalIntercepts = activeDayData.size
+    val totalSkipped = activeDayData.count { !it.userContinued }
     val improvementPoints = remember(appStats) {
         val points = mutableListOf<String>()
         if (totalIntercepts == 0) {
             points.add("Looks like a quiet day! Make sure Accessibility is enabled if you aren't seeing data.")
         } else {
             val mostOpened = appStats.maxByOrNull { it.opened }
-            if (mostOpened != null && mostOpened.opened > 0) {
-                points.add("You've pushed through the breathing window to open ${mostOpened.appName} ${mostOpened.opened} times today. Try finding an alternative activity when you feel the urge to check it.")
-            }
             val bestSkipped = appStats.maxByOrNull { it.skipped }
-            if (bestSkipped != null && bestSkipped.skipped > 0) {
-                points.add("Great job avoiding ${bestSkipped.appName}! You skipped it ${bestSkipped.skipped} times.")
+            val successRate = if (totalIntercepts > 0) (totalSkipped.toFloat() / totalIntercepts * 100).toInt() else 0
+            
+            if (successRate >= 80) {
+                points.add("🧘 Zen Master: You brushed off almost all distractions today ($successRate% success). Keep building this unshakeable habit!")
+            } else if (successRate > 40) {
+                points.add("📈 Gaining Ground: You successfully paused and avoided distractions $successRate% of the time today.")
+            } else if (successRate > 0) {
+                points.add("⚠️ Friction is Good: A lower success rate ($successRate%) means you're still relying heavily on willpower. Try physically moving distracting apps off your home screen!")
+            } else {
+                points.add("🚨 Distraction Heavy: You pushed through every single breathing window today. Tomorrow is a fresh start to rebuild your patience.")
+            }
+
+            if (mostOpened != null && mostOpened.opened > 0) {
+                if (mostOpened.opened > 5) {
+                    points.add("📱 Arch Nemesis: ${mostOpened.appName} broke through your focus ${mostOpened.opened} times today. Consider increasing the breathing time for this app or removing it temporarily.")
+                } else {
+                    points.add("🔍 Minor Leaks: You pushed through the breathing window to open ${mostOpened.appName} ${mostOpened.opened} times today.")
+                }
             }
             
-            val successRate = if (totalIntercepts > 0) (totalSkipped.toFloat() / totalIntercepts * 100).toInt() else 0
-            if (successRate > 60) {
-                points.add("You have a high success rate ($successRate%) today. Keep up the good work!")
-            } else if (successRate > 0) {
-                points.add("A $successRate% success rate means there is still room to pause and reconsider before opening apps.")
+            if (bestSkipped != null && bestSkipped.skipped > 0) {
+                if (bestSkipped.skipped > (mostOpened?.opened ?: 0)) {
+                    points.add("🛡️ Epic Defense: Incredible job avoiding ${bestSkipped.appName}! You successfully walked away from it ${bestSkipped.skipped} times.")
+                } else {
+                    points.add("🛡️ Small Wins: You successfully avoided ${bestSkipped.appName} ${bestSkipped.skipped} times.")
+                }
             }
         }
         points
@@ -71,7 +87,7 @@ fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) 
                 title = { Text("Detailed Insights", fontWeight = FontWeight.Black) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.largeTopAppBarColors()
@@ -86,6 +102,24 @@ fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) 
             verticalArrangement = Arrangement.spacedBy(24.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { activeDate -= 86400000L }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Day")
+                    }
+                    val cal = Calendar.getInstance().apply { timeInMillis = activeDate }
+                    val isToday = Calendar.getInstance().apply { 
+                        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis == activeDate
+                    Text(
+                        if (isToday) "Today" else "${cal.get(Calendar.MONTH) + 1}/${cal.get(Calendar.DAY_OF_MONTH)}", 
+                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = { activeDate += 86400000L }, enabled = !isToday) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Day")
+                    }
+                }
+            }
             item {
                 Text("Improvement Points", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))

@@ -102,7 +102,13 @@ class MainActivity : ComponentActivity() {
 
                     val activity = androidx.compose.ui.platform.LocalContext.current as? MainActivity
                     LaunchedEffect(activity) {
+                        if (intent?.getBooleanExtra("open_insights", false) == true) {
+                            navController.navigate("insights") { launchSingleTop = true }
+                        }
                         activity?._newIntents?.collect { newIntent ->
+                            if (newIntent.getBooleanExtra("open_insights", false)) {
+                                navController.navigate("insights") { launchSingleTop = true }
+                            }
                             val pkg = newIntent.getStringExtra("intercept_package")
                             if (pkg != null) {
                                 val cont = newIntent.getIntExtra("continuous_minutes", 0)
@@ -128,25 +134,41 @@ class MainActivity : ComponentActivity() {
                                 NavigationBar {
                                     NavigationBarItem(
                                         selected = currentRoute == "dashboard",
-                                        onClick = { navController.navigate("dashboard") },
+                                        onClick = { 
+                                            if (currentRoute != "dashboard") {
+                                                navController.navigate("dashboard") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
                                         label = { Text("Dashboard") }
                                     )
                                     NavigationBarItem(
                                         selected = currentRoute == "history",
-                                        onClick = { navController.navigate("history") },
+                                        onClick = { 
+                                            if (currentRoute != "history") {
+                                                navController.navigate("history") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "History") },
                                         label = { Text("History") }
                                     )
                                     NavigationBarItem(
                                         selected = currentRoute == "apps",
-                                        onClick = { navController.navigate("apps") },
+                                        onClick = { 
+                                            if (currentRoute != "apps") {
+                                                navController.navigate("apps") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Settings, contentDescription = "Apps") },
                                         label = { Text("Apps") }
                                     )
                                     NavigationBarItem(
                                         selected = currentRoute == "profile",
-                                        onClick = { navController.navigate("profile") },
+                                        onClick = { 
+                                            if (currentRoute != "profile") {
+                                                navController.navigate("profile") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                         label = { Text("Profile") }
                                     )
@@ -159,25 +181,41 @@ class MainActivity : ComponentActivity() {
                                 NavigationRail {
                                     NavigationRailItem(
                                         selected = currentRoute == "dashboard",
-                                        onClick = { navController.navigate("dashboard") },
+                                        onClick = { 
+                                            if (currentRoute != "dashboard") {
+                                                navController.navigate("dashboard") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
                                         label = { Text("Dashboard") }
                                     )
                                     NavigationRailItem(
                                         selected = currentRoute == "history",
-                                        onClick = { navController.navigate("history") },
+                                        onClick = { 
+                                            if (currentRoute != "history") {
+                                                navController.navigate("history") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "History") },
                                         label = { Text("History") }
                                     )
                                     NavigationRailItem(
                                         selected = currentRoute == "apps",
-                                        onClick = { navController.navigate("apps") },
+                                        onClick = { 
+                                            if (currentRoute != "apps") {
+                                                navController.navigate("apps") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Settings, contentDescription = "Apps") },
                                         label = { Text("Apps") }
                                     )
                                     NavigationRailItem(
                                         selected = currentRoute == "profile",
-                                        onClick = { navController.navigate("profile") },
+                                        onClick = { 
+                                            if (currentRoute != "profile") {
+                                                navController.navigate("profile") { launchSingleTop = true; restoreState = true }
+                                            }
+                                        },
                                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                         label = { Text("Profile") }
                                     )
@@ -221,6 +259,7 @@ class MainActivity : ComponentActivity() {
                                     val interceptsWeek by focusViewModel.totalInterceptsWeek.collectAsState()
                                     val preventedWeek by focusViewModel.preventedLaunchesWeek.collectAsState()
                                     val apps by focusViewModel.blockedApps.collectAsState()
+                                    val historicalSessions by focusViewModel.historicalSessions.collectAsState()
                                     val context = androidx.compose.ui.platform.LocalContext.current.applicationContext
                                     
                                     LaunchedEffect(intercepts, prevented) {
@@ -232,6 +271,7 @@ class MainActivity : ComponentActivity() {
                                         preventedLaunches = prevented,
                                         totalInterceptsWeek = interceptsWeek,
                                         preventedLaunchesWeek = preventedWeek,
+                                        historicalSessions = historicalSessions,
                                         blockedApps = apps,
                                         onManageBlockedApps = { navController.navigate("apps") },
                                         onTestIntercept = { appName -> 

@@ -83,52 +83,58 @@ class FocusAccessibilityService : AccessibilityService() {
                 return
             }
 
-            val previousRealPackage = currentRealForegroundPackage
-            
-            if (packageName != currentRealForegroundPackage) {
-                configRepo.clearAllAllowancesExcept(packageName)
-                currentRealForegroundPackage = packageName
-                foregroundStartTime = System.currentTimeMillis()
-                trackingJob?.cancel()
-                
-                scope.launch {
-                    val blockedApps = configRepo.blockedApps.firstOrNull() ?: emptySet()
-                    if (blockedApps.contains(packageName)) {
-                        startContinuousTracking(packageName)
-                    }
-                }
-            }
-
             scope.launch {
                 val blockedApps = configRepo.blockedApps.firstOrNull() ?: emptySet()
-                if (blockedApps.contains(packageName) && !configRepo.isAppTemporarilyAllowed(packageName)) {
-                    // Only intercept if this is a fresh launch or allowance expired and they just entered
-                    if (previousRealPackage != packageName) {
-                        val now = System.currentTimeMillis()
-                        if (packageName == lastInterceptedPackage && now - lastInterceptTime < 2000) {
-                            return@launch // debounce
-                        }
-                        lastInterceptedPackage = packageName
-                        lastInterceptTime = now
+                
+                if (blockedApps.contains(packageName)) {
+                    val wasTemporarilyAllowed = configRepo.isAppTemporarilyAllowed(packageName)
+                    
+                    if (packageName != currentRealForegroundPackage) {
+                        currentRealForegroundPackage = packageName
+                        
+                        if (!wasTemporarilyAllowed) {
+                            foregroundStartTime = System.currentTimeMillis()
+                            trackingJob?.cancel()
+                            startContinuousTracking(packageName)
+                            
+                            val now = System.currentTimeMillis()
+                            if (packageName == lastInterceptedPackage && now - lastInterceptTime < 2000) {
+                                return@launch // debounce
+                            }
+                            lastInterceptedPackage = packageName
+                            lastInterceptTime = now
 
-                        // Block the app by launching our intercept screen
-                        val intent = Intent(applicationContext, com.example.BreatheActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            putExtra("intercept_package", packageName)
+                            // Block the app by launching our intercept screen
+                            val intent = Intent(applicationContext, com.example.BreatheActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                putExtra("intercept_package", packageName)
+                            }
+                            startActivity(intent)
+                        } else {
+                            // It was allowed (e.g., returned from a keyboard or share sheet).
+                            // Ensure tracking is running if it was somehow canceled.
+                            if (trackingJob?.isActive != true) {
+                                foregroundStartTime = System.currentTimeMillis() // Reset time for the active session
+                                startContinuousTracking(packageName)
+                            }
                         }
-                        startActivity(intent)
                     }
                 }
+                // If it's not a blocked app, we do nothing. 
+                // We DO NOT cancel the tracking job, because the user might just be opening a keyboard, 
+                // share sheet, or quickly replying to a message from a notification. 
+                // Their allowance for the blocked app will naturally expire in 5 minutes if they don't return.
             }
         }
     }
     
     private fun startContinuousTracking(packageName: String) {
         trackingJob = scope.launch(Dispatchers.IO) {
-            var lastNotifiedMinute = 0
+            var nextBreakMinute = 30
+            var nextNotifMinute = 15
             
             while (true) {
-                delay(60_000) // check every minute
+                delay(30_000) // check every 30 seconds
                 
                 // Keep the temporary allowance alive as long as they are actively using it
                 // so they aren't blocked randomly when sharing reels.
@@ -137,12 +143,13 @@ class FocusAccessibilityService : AccessibilityService() {
                 val usageTime = System.currentTimeMillis() - foregroundStartTime
                 val minutes = (usageTime / (60 * 1000L)).toInt()
                 
-                if (minutes > 0 && minutes % 30 == 0 && minutes != lastNotifiedMinute) {
-                    lastNotifiedMinute = minutes
-                    launchContinuousBreak(packageName, minutes)
-                } else if (minutes > 0 && minutes % 15 == 0 && minutes != lastNotifiedMinute) {
-                    lastNotifiedMinute = minutes
-                    sendTimeNotification(packageName, minutes)
+                if (minutes >= nextBreakMinute) {
+                    launchContinuousBreak(packageName, nextBreakMinute)
+                    nextBreakMinute += 30
+                    if (nextNotifMinute <= minutes) nextNotifMinute = nextBreakMinute - 15
+                } else if (minutes >= nextNotifMinute) {
+                    sendTimeNotification(packageName, nextNotifMinute)
+                    nextNotifMinute += 30
                 }
             }
         }

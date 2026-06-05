@@ -5,8 +5,10 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -65,10 +67,13 @@ fun AppSelectionScreen(
         }
     }
 
-    val filteredApps = if (searchQuery.isBlank()) {
-        installedApps
-    } else {
-        installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+    val filteredApps = remember(installedApps, searchQuery, blockedApps) {
+        val list = if (searchQuery.isBlank()) {
+            installedApps
+        } else {
+            installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+        }
+        list.sortedWith(compareBy({ !blockedApps.contains(it.packageName) }, { it.appName }))
     }
 
     Scaffold(
@@ -87,21 +92,24 @@ fun AppSelectionScreen(
             )
         }
     ) { paddingVals ->
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 350.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingVals)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "Select apps to add an intercept delay before opening.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -113,7 +121,7 @@ fun AppSelectionScreen(
                 )
             }
             if (installedApps.isEmpty()) {
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
@@ -132,7 +140,7 @@ fun AppSelectionScreen(
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
 }

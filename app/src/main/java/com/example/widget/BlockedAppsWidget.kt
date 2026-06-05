@@ -31,6 +31,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.height
 import com.example.MainActivity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.firstOrNull
 
 class BlockedAppsWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -107,4 +109,13 @@ fun BlockedAppsWidgetContent(blockedApps: List<String>) {
 
 class BlockedAppsWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = BlockedAppsWidget()
+
+    override fun onUpdate(context: Context, appWidgetManager: android.appwidget.AppWidgetManager, appWidgetIds: IntArray) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val config = com.example.data.AppConfigRepository(context)
+            val apps = config.blockedApps.firstOrNull() ?: emptySet()
+            updateBlockedAppsWidget(context, apps)
+        }
+    }
 }

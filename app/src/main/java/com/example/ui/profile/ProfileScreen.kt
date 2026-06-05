@@ -3,6 +3,7 @@ package com.example.ui.profile
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,39 +42,50 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     
-    // Group real data by day for the last 6 days + today
-    val weeklyData: List<Pair<Int, Int>> = remember(historicalSessions) {
-        val now = System.currentTimeMillis()
-        val calendar = Calendar.getInstance()
-        
-        (0..6).map { daysAgo ->
-            val daysAgoInt = 6 - daysAgo
-            val startOfDay = calendar.apply {
+    data class DayStats(val total: Int, val preventedByApp: Map<String, Int>)
+    
+    var weeklyData by remember { mutableStateOf<List<DayStats>>(emptyList()) }
+    var todaysData by remember { mutableStateOf<List<IntentSession>>(emptyList()) }
+    var appCounts by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
+
+    LaunchedEffect(historicalSessions) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val now = System.currentTimeMillis()
+            val calendar = Calendar.getInstance()
+            
+            val computedWeekly = (0..6).map { daysAgo ->
+                val daysAgoInt = 6 - daysAgo
+                val startOfDay = calendar.apply {
+                    timeInMillis = now
+                    add(Calendar.DAY_OF_YEAR, -daysAgoInt)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                
+                val endOfDay = startOfDay + TimeUnit.DAYS.toMillis(1)
+                
+                val sessionsInDay = historicalSessions.filter { it.timestamp in startOfDay until endOfDay }
+                val total = sessionsInDay.size
+                
+                val preventedSessions = sessionsInDay.filter { !it.userContinued }
+                val preventedByApp = preventedSessions.groupBy { it.appName }.mapValues { it.value.size }
+                
+                DayStats(total, preventedByApp)
+            }
+            weeklyData = computedWeekly
+            
+            val todayStart = calendar.apply { 
                 timeInMillis = now
-                add(Calendar.DAY_OF_YEAR, -daysAgoInt)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }.timeInMillis 
             
-            val endOfDay = startOfDay + TimeUnit.DAYS.toMillis(1)
-            
-            val sessionsInDay = historicalSessions.filter { it.timestamp in startOfDay until endOfDay }
-            val total = sessionsInDay.size
-            val prevented = sessionsInDay.count { !it.userContinued }
-            
-            total to prevented
+            val computedToday = historicalSessions.filter { it.timestamp >= todayStart }
+            todaysData = computedToday
+            appCounts = computedToday.groupBy { it.appName }.mapValues { it.value.size }.toList().sortedByDescending { it.second }
         }
     }
-    
-    val todaysData = historicalSessions.filter { 
-       it.timestamp >= Calendar.getInstance().apply { 
-          set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-       }.timeInMillis 
-    }
-    
-    val appCounts = todaysData.groupBy { it.appName }.mapValues { it.value.size }.toList().sortedByDescending { it.second }
     val baseColor = MaterialTheme.colorScheme.primary
     val dynamicColors = remember(appCounts, baseColor) {
         appCounts.mapIndexed { i, _ ->
@@ -143,7 +155,7 @@ fun ProfileScreen(
                     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                         val preventedColor = MaterialTheme.colorScheme.primary
                         val failedColor = MaterialTheme.colorScheme.error
-                        val maxVal = maxOf(weeklyData.maxOf { it.first }, 5).toFloat()
+                        val maxVal = maxOf(if(weeklyData.isEmpty()) 5 else weeklyData.maxOf { it.total }, 5).toFloat()
                         
                         if (totalInterceptsWeek == 0) {
                             Text(
@@ -179,29 +191,49 @@ fun ProfileScreen(
                                     drawLine(color = gridColor, start = Offset(0f, size.height / 2), end = Offset(size.width, size.height / 2), strokeWidth = 1.dp.toPx())
                                     drawLine(color = gridColor, start = Offset(0f, size.height), end = Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
 
-                                    // Draw the bars using real data
-                                    weeklyData.forEachIndexed { i, (totalRaw, preventedRaw) ->
-                                        val totalH = (totalRaw / maxVal) * size.height
-                                        val preventedH = (preventedRaw / maxVal) * size.height
+                                     // Draw the bars using real data
+                                    weeklyData.forEachIndexed { i, dayStat ->
+                                        val totalH = (dayStat.total / maxVal) * size.height
                                         
                                         val sectionWidth = size.width / 7
                                         val xPos = i * sectionWidth + (sectionWidth - barWidth) / 2
                                         
-                                        // Draw background (failed/opened)
-                                        drawRoundRect(
-                                            color = failedColor.copy(alpha = if (totalInterceptsWeek == 0) 0.3f else 1f),
-                                            topLeft = Offset(xPos, size.height - totalH),
-                                            size = Size(barWidth, totalH),
-                                            cornerRadius = CornerRadius(8.dp.toPx())
-                                        )
-                                        
-                                        // Draw foreground (prevented)
-                                        drawRoundRect(
-                                            color = preventedColor.copy(alpha = if (totalInterceptsWeek == 0) 0.3f else 1f),
-                                            topLeft = Offset(xPos, size.height - preventedH),
-                                            size = Size(barWidth, preventedH),
-                                            cornerRadius = CornerRadius(8.dp.toPx())
-                                        )
+                                        val barPath = androidx.compose.ui.graphics.Path().apply {
+                                            addRoundRect(
+                                                androidx.compose.ui.geometry.RoundRect(
+                                                    left = xPos,
+                                                    top = size.height - totalH,
+                                                    right = xPos + barWidth,
+                                                    bottom = size.height,
+                                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                                                )
+                                            )
+                                        }
+
+                                        clipPath(barPath) {
+                                            // Draw background (failed/opened)
+                                            drawRect(
+                                                color = failedColor.copy(alpha = if (totalInterceptsWeek == 0) 0.3f else 1f),
+                                                topLeft = Offset(xPos, size.height - totalH),
+                                                size = Size(barWidth, totalH)
+                                            )
+                                            
+                                            // Draw foreground (prevented) - STACKED
+                                            var currentY = size.height
+                                            dayStat.preventedByApp.forEach { (appName, count) ->
+                                                val partH = (count * 1f / maxVal) * size.height
+                                                // Get color for app
+                                                val appIndex = appCounts.indexOfFirst { it.first == appName }
+                                                val barColor = if(appIndex >= 0 && dynamicColors.isNotEmpty()) dynamicColors[appIndex % dynamicColors.size] else preventedColor
+                                                
+                                                drawRect(
+                                                    color = barColor.copy(alpha = if (totalInterceptsWeek == 0) 0.3f else 1f),
+                                                    topLeft = Offset(xPos, currentY - partH),
+                                                    size = Size(barWidth, partH)
+                                                )
+                                                currentY -= partH
+                                            }
+                                        }
                                     }
                                 }
                                 

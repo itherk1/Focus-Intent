@@ -37,17 +37,40 @@ fun BreathingExerciseScreen(
     }
     
     val infiniteTransition = rememberInfiniteTransition(label = "breathe")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
+    // Animating from 0 to 19000 ms to represent a full 19s breathing cycle (4s inhale, 7s hold, 8s exhale)
+    val cycleTime by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 19000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(19000, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "scale"
+        label = "cycleTime"
     )
+
+    val phaseText = when {
+        cycleTime < 4000f -> "Inhale"
+        cycleTime < 11000f -> "Hold"
+        else -> "Exhale"
+    }
+
+    // Scale mapping based on cycle time for smooth transitions
+    val scale = when {
+        cycleTime < 4000f -> {
+            // Inhale: 0.5 to 1.0 over 4s
+            0.5f + (cycleTime / 4000f) * 0.5f
+        }
+        cycleTime < 11000f -> {
+            // Hold: Stay at 1.0 for 7s
+            1.0f
+        }
+        else -> {
+            // Exhale: 1.0 to 0.5 over 8s
+            val exhaleProgress = (cycleTime - 11000f) / 8000f
+            1.0f - exhaleProgress * 0.5f
+        }
+    }
     
-    val phaseText = if (scale > 0.8f) "Hold" else if (scale < 0.6f) "Exhale" else "Inhale"
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     

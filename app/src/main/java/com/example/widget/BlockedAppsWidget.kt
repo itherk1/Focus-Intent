@@ -33,9 +33,11 @@ import androidx.glance.layout.height
 import com.example.MainActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.firstOrNull
+import androidx.glance.appwidget.cornerRadius
 
 class BlockedAppsWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+    override val sizeMode = androidx.glance.appwidget.SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -52,9 +54,19 @@ class BlockedAppsWidget : GlanceAppWidget() {
 fun BlockedAppsWidgetContent(blockedApps: List<String>) {
     val context = LocalContext.current
     val pm = context.packageManager
+    val size = androidx.glance.LocalSize.current
+    
+    // Header roughly 40dp, each line roughly 22dp
+    val availableHeight = size.height.value
+    val maxItems = ((availableHeight - 40) / 22).toInt().coerceAtLeast(1)
+    
+    val bgColors = ColorProvider(Color(0xFF2B2930))
+    val textColors = ColorProvider(Color(0xFFE8DEF8))
+    
     Column(
         modifier = GlanceModifier.fillMaxSize()
-            .background(Color(0xFF1D1B20)) // Dark mode default background
+            .background(bgColors)
+            .cornerRadius(24.dp)
             .padding(16.dp)
             .clickable(actionStartActivity(Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })),
         horizontalAlignment = Alignment.Start,
@@ -63,7 +75,7 @@ fun BlockedAppsWidgetContent(blockedApps: List<String>) {
         Text(
             text = "Blocked Apps",
             style = TextStyle(
-                color = ColorProvider(Color(0xFFE8DEF8)),
+                color = textColors,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -73,12 +85,12 @@ fun BlockedAppsWidgetContent(blockedApps: List<String>) {
              Text(
                 text = "No apps blocked.",
                 style = TextStyle(
-                    color = ColorProvider(Color(0xFFCAC4D0)),
+                    color = textColors,
                     fontSize = 14.sp
                 )
             )
         } else {
-             blockedApps.take(4).forEach { pkg ->
+             blockedApps.take(maxItems).forEach { pkg ->
                  val appName = try {
                      pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
                  } catch (e: Exception) {
@@ -87,17 +99,17 @@ fun BlockedAppsWidgetContent(blockedApps: List<String>) {
                  Text(
                     text = "• $appName",
                     style = TextStyle(
-                        color = ColorProvider(Color(0xFFD0BCFF)),
+                        color = textColors,
                         fontSize = 14.sp
                     ),
                     modifier = GlanceModifier.padding(vertical = 2.dp)
                 )
              }
-             if (blockedApps.size > 4) {
+             if (blockedApps.size > maxItems) {
                  Text(
-                    text = "+ ${blockedApps.size - 4} more",
+                    text = "+ ${blockedApps.size - maxItems} more",
                     style = TextStyle(
-                        color = ColorProvider(Color(0xFFCAC4D0)),
+                        color = textColors,
                         fontSize = 12.sp
                     ),
                     modifier = GlanceModifier.padding(top = 4.dp)

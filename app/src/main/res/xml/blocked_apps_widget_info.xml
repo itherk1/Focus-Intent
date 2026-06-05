@@ -8,5 +8,6 @@
     android:updatePeriodMillis="86400000"
     android:description="@string/widget_blocked_apps_desc"
     android:targetCellWidth="3"
-    android:targetCellHeight="2">
+    android:targetCellHeight="2"
+    android:previewLayout="@layout/widget_preview_blocked">
 </appwidget-provider>

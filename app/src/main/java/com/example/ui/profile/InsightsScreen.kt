@@ -77,6 +77,41 @@ fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) 
                     points.add("🛡️ Small Wins: You successfully avoided ${bestSkipped.appName} ${bestSkipped.skipped} times.")
                 }
             }
+            
+            // Peak Active Hour
+            if (activeDayData.isNotEmpty()) {
+                val mostActiveHour = activeDayData.groupBy { 
+                    val cal = Calendar.getInstance()
+                    cal.timeInMillis = it.timestamp
+                    cal.get(Calendar.HOUR_OF_DAY)
+                }.maxByOrNull { it.value.size }
+                
+                if (mostActiveHour != null) {
+                    val hour = mostActiveHour.key
+                    val ampm = if (hour >= 12) "PM" else "AM"
+                    val formattedHour = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
+                    points.add("🕰️ Peak Temptation: You were most distracted around $formattedHour:00 $ampm (${mostActiveHour.value.size} attempts). Try structuring deep work or taking a walk during this window.")
+                }
+            }
+
+            // Streak insight if they opened a bunch of apps in a short window
+            if (activeDayData.size > 3) {
+                var maxStreak = 0
+                var currentStreak = 0
+                val sortedData = activeDayData.sortedBy { it.timestamp }
+                for (i in 1 until sortedData.size) {
+                    val diff = kotlin.math.abs(sortedData[i].timestamp - sortedData[i-1].timestamp)
+                    if (diff < 5 * 60 * 1000) { // within 5 minutes
+                        currentStreak++
+                        if (currentStreak > maxStreak) maxStreak = currentStreak
+                    } else {
+                        currentStreak = 0
+                    }
+                }
+                if (maxStreak >= 3) {
+                    points.add("🌪️ Doomscroll Alert: You had a sequence of trying to open ${maxStreak + 1} blocked apps within 5-minute windows. When you feel this urge, put your phone in another room.")
+                }
+            }
         }
         points
     }
@@ -123,7 +158,13 @@ fun InsightsScreen(historicalSessions: List<IntentSession>, onBack: () -> Unit) 
             item {
                 Text("Improvement Points", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                improvementPoints.forEach { point ->
+            }
+            if (improvementPoints.isEmpty()) {
+                item {
+                    Text("No points available yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                items(improvementPoints) { point ->
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),

@@ -13,6 +13,25 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.4.1
+- **List Optimization**: Implemented memory-efficient item rendering for History and Insights screens using Lazy items and memoization, dramatically reducing scroll stutter and transition judder.
+- **Dynamic Insights**: Refactored Improvement Points to support an infinitely scaling list instead of a fixed cap.
+- **Preview Widgets**: Added native Material 3 previews for Weekly Focus and Blocked Apps widgets in the widget selector screen.
+- **Battery Optimization**: Deferred unneeded logic and optimized pie chart visualization drawing limits.
+
+## Version 1.4.0
+- **Refined Chart Aesthetics**: Updated the stacked bar charts on the Profile screen to use precise rounded paths, ensuring beautiful symmetry and clipping regardless of how many apps stack up.
+- **Material 3 Widget Upgrade**: Overhauled the Weekly Focus widget to fully adopt Material 3 theming (GlanceTheme), delivering gorgeous corner radii and matching native system UI perfectly.
+- **Deep Insights**: Added advanced analytics to the Insights screen, automatically detecting and Warning you about "Doomscrolling Streaks" and "Peak Temptation Hours" when you have enough data.
+- **Silky Smooth Visuals**: Improved Compose drawing loops under the hood to ensure animations and scroll performance are snappier across all screens.
+
+## Version 1.3.2
+- **Optimized Performance**: Re-engineered historical stats generation to run cleanly in background threads, eliminating UI stutters across App Selection, History, and Profile screens.
+- **Accurate Subreddit Handling**: Refined accessibility service tracking logic so it no longer interrupts your session repeatedly if you navigate between secondary activities (like sub-reddits or embedded webviews) within the same allowed application.
+- **Multi-color Chart Details**: The Profile screen's Weekly Focus chart now perfectly stacks data using precise Material theme color matching per individual app, ensuring full visualization of what actually distracted you each day.
+- **Improved Adaptive Widgets**: Added a highly requested `4x3` Weekly Focus stacked-bar widget and resolved sizing bugs on Blocked Apps widgets to utilize dynamic Glance layout space calculation instead of hardcoded item limits.
+- **Synchronous Breathing Sync**: Restructured Jetpack Compose `BreathingExerciseScreen` logic for perfectly locked scaling interpolation mappings and correct phase text, preventing stutter and incorrect phase labels.
+
 ## Version 1.3.1
 - **Tablet & Foldable Optimization**: Revamped History, Apps, and Profile screens to use responsive `LazyVerticalGrid` layouts, utilizing the full width of large screens.
 - **Scroll Fix for Profile**: Added scroll support and grid wrapping to the Profile screen to ensure diagrams are no longer clipped or excessively large on portrait mode.

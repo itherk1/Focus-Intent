@@ -15,8 +15,8 @@ android {
     applicationId = "com.aistudio.focusintent.xyzqpz"
     minSdk = 24
     targetSdk = 36
-    versionCode = 5
-    versionName = "1.3.1"
+    versionCode = 8
+    versionName = "1.4.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

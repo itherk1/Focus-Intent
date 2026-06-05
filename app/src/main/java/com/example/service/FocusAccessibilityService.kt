@@ -77,7 +77,6 @@ class FocusAccessibilityService : AccessibilityService() {
             val isLauncher = resolveInfo?.activityInfo?.packageName == packageName
 
             if (isLauncher) {
-                configRepo.clearAllAllowancesExcept(packageName)
                 trackingJob?.cancel()
                 currentRealForegroundPackage = null
                 return
@@ -112,18 +111,24 @@ class FocusAccessibilityService : AccessibilityService() {
                             startActivity(intent)
                         } else {
                             // It was allowed (e.g., returned from a keyboard or share sheet).
-                            // Ensure tracking is running if it was somehow canceled.
                             if (trackingJob?.isActive != true) {
                                 foregroundStartTime = System.currentTimeMillis() // Reset time for the active session
                                 startContinuousTracking(packageName)
                             }
                         }
+                    } else {
+                        // Same package foreground event (could be a sub-activity like a subreddit)
+                        // Make sure tracking is active if it was accidentally stopped
+                        if (wasTemporarilyAllowed && trackingJob?.isActive != true) {
+                            startContinuousTracking(packageName)
+                        } else if (!wasTemporarilyAllowed) {
+                            // Allowance expired while they were in the app!
+                            // Or they triggered an event and the allowance is strictly gone.
+                            // However, we don't want to just block them randomly in-app unless a continuous timer does it.
+                            // So we rely on startContinuousTracking for in-app breaks.
+                        }
                     }
                 }
-                // If it's not a blocked app, we do nothing. 
-                // We DO NOT cancel the tracking job, because the user might just be opening a keyboard, 
-                // share sheet, or quickly replying to a message from a notification. 
-                // Their allowance for the blocked app will naturally expire in 5 minutes if they don't return.
             }
         }
     }

@@ -67,13 +67,16 @@ fun AppSelectionScreen(
         }
     }
 
-    val filteredApps = remember(installedApps, searchQuery, blockedApps) {
-        val list = if (searchQuery.isBlank()) {
-            installedApps
-        } else {
-            installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+    var filteredApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
+    LaunchedEffect(installedApps, searchQuery, blockedApps) {
+        withContext(Dispatchers.Default) {
+            val list = if (searchQuery.isBlank()) {
+                installedApps
+            } else {
+                installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+            }
+            filteredApps = list.sortedWith(compareBy({ !blockedApps.contains(it.packageName) }, { it.appName }))
         }
-        list.sortedWith(compareBy({ !blockedApps.contains(it.packageName) }, { it.appName }))
     }
 
     Scaffold(

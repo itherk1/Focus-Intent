@@ -23,12 +23,15 @@ import java.util.Locale
 fun HistoryScreen(historicalSessions: List<IntentSession>) {
     var sortOption by remember { mutableStateOf(SortOption.TIME_DESC) }
     
-    val sortedSessions = remember(historicalSessions, sortOption) {
-        when (sortOption) {
-            SortOption.TIME_DESC -> historicalSessions.sortedByDescending { it.timestamp }
-            SortOption.TIME_ASC -> historicalSessions.sortedBy { it.timestamp }
-            SortOption.APP_NAME -> historicalSessions.sortedBy { it.appName }
-            SortOption.ACTION -> historicalSessions.sortedBy { it.userContinued }
+    var sortedSessions by remember { mutableStateOf<List<IntentSession>>(emptyList()) }
+    LaunchedEffect(historicalSessions, sortOption) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            sortedSessions = when (sortOption) {
+                SortOption.TIME_DESC -> historicalSessions.sortedByDescending { it.timestamp }
+                SortOption.TIME_ASC -> historicalSessions.sortedBy { it.timestamp }
+                SortOption.APP_NAME -> historicalSessions.sortedBy { it.appName }
+                SortOption.ACTION -> historicalSessions.sortedBy { it.userContinued }
+            }
         }
     }
 
@@ -94,7 +97,7 @@ enum class SortOption(val title: String) {
 @Composable
 fun SessionHistoryItem(session: IntentSession) {
     val formatter = remember { SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()) }
-    val timeString = formatter.format(Date(session.timestamp))
+    val timeString = remember(session.timestamp) { formatter.format(Date(session.timestamp)) }
     
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),

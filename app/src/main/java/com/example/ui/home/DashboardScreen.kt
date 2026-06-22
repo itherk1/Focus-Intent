@@ -52,6 +52,7 @@ fun DashboardScreen(
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 hasUsagePermission = com.example.utils.UsageStatsHelper.hasUsageStatsPermission(context)
+                isAccessibilityEnabled = AccessibilityHelper.isAccessibilityServiceEnabled(context, com.example.service.FocusAccessibilityService::class.java)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -64,11 +65,6 @@ fun DashboardScreen(
                 todayUsageStats = com.example.utils.UsageStatsHelper.getTodayUsageStats(context)
             }
         }
-    }
-
-    // Check accessibility status when screen is displayed
-    LaunchedEffect(Unit) {
-        isAccessibilityEnabled = AccessibilityHelper.isAccessibilityServiceEnabled(context, com.example.service.FocusAccessibilityService::class.java)
     }
 
     if (showRestrictedSettingsHelp) {

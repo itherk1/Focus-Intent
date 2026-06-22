@@ -13,6 +13,12 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.5.0
+- **App Intercept Stability**: Completely redesigned the Accessibility foreground tracking layer to instantly react to complex splash screens and deeply nested launchers (specifically fixing bypass vectors for apps like Bumble).
+- **Smooth Organic Animation**: Rewrote the Breathing Intercept screen's scale animations using native Compose Keyframes and complex path easing formulas resulting in an ultra-smooth, organic expansion and contraction mirroring human breath.
+- **Color Consistency**: Fixed the Weekly Focus chart's rendering logic to guarantee consistent and identical color matching per application across the varying days of the week, displaying a cohesive spectrum regardless of opening cadence.
+- **Lifecycle Optimizations**: Rebuilt settings and permission observation loops in dashboard screens to immediately re-bind and dismiss warning modules without requiring an app restart after system configuration changes.
+
 ## Version 1.4.1
 - **List Optimization**: Implemented memory-efficient item rendering for History and Insights screens using Lazy items and memoization, dramatically reducing scroll stutter and transition judder.
 - **Dynamic Insights**: Refactored Improvement Points to support an infinitely scaling list instead of a fixed cap.

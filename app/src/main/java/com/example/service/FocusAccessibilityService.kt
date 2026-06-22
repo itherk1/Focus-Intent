@@ -24,9 +24,6 @@ class FocusAccessibilityService : AccessibilityService() {
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + supervisorJob)
     private lateinit var configRepo: AppConfigRepository
-
-    private var lastInterceptedPackage: String? = null
-    private var lastInterceptTime: Long = 0
     
     private var trackingJob: Job? = null
     private var currentRealForegroundPackage: String? = null
@@ -56,7 +53,10 @@ class FocusAccessibilityService : AccessibilityService() {
             val packageName = event.packageName?.toString() ?: return
             
             // Exclude our own app
-            if (packageName == applicationContext.packageName) return
+            if (packageName == applicationContext.packageName) {
+                currentRealForegroundPackage = packageName
+                return
+            }
             
             // Exclude keyboards, system UI, etc. from resetting tracking
             val isSystemOverlay = packageName in listOf(
@@ -96,13 +96,6 @@ class FocusAccessibilityService : AccessibilityService() {
                             trackingJob?.cancel()
                             startContinuousTracking(packageName)
                             
-                            val now = System.currentTimeMillis()
-                            if (packageName == lastInterceptedPackage && now - lastInterceptTime < 2000) {
-                                return@launch // debounce
-                            }
-                            lastInterceptedPackage = packageName
-                            lastInterceptTime = now
-
                             // Block the app by launching our intercept screen
                             val intent = Intent(applicationContext, com.example.BreatheActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

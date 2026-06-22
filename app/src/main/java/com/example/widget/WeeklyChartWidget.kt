@@ -66,7 +66,13 @@ fun WeeklyChartWidgetContent(dataStr: String) {
     
     val fallbackDays = if (days.size == 7) days else List(7) { Pair(0, emptyMap<String, Int>()) }
     
-    val colors = listOf(Color(0xFFD0BCFF), Color(0xFFCCC2DC), Color(0xFFEFB8C8), Color(0xFFF2B8B5))
+    val colors = listOf(Color(0xFFD0BCFF), Color(0xFFCCC2DC), Color(0xFFEFB8C8), Color(0xFFF2B8B5), Color(0xFFEADDFF), Color(0xFFE6E0E9))
+    
+    // Assign consistent colors to each unique app across the week
+    val uniqueApps = days.flatMap { it.second.keys }.distinct().sorted()
+    val appColorMap = uniqueApps.mapIndexed { index, appName -> 
+        appName to colors[index % colors.size]
+    }.toMap()
     
     val bgColors = ColorProvider(Color(0xFF2B2930))
     val textColors = ColorProvider(Color(0xFFE8DEF8))
@@ -102,13 +108,11 @@ fun WeeklyChartWidgetContent(dataStr: String) {
                         modifier = GlanceModifier.fillMaxWidth().cornerRadius(4.dp).background(ColorProvider(Color(0xFF8C1D18))),
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        var colorIdx = 0
-                        dayInfo.second.forEach { (_, count) ->
+                        dayInfo.second.forEach { (appName, count) ->
                             val h = count * scale
                             if (h > 0) {
-                                val c = colors[colorIdx % colors.size]
+                                val c = appColorMap[appName] ?: colors.first()
                                 Box(modifier = GlanceModifier.fillMaxWidth().height(h.dp).background(c)) {}
-                                colorIdx++
                             }
                         }
                         if (failedH > 0) {

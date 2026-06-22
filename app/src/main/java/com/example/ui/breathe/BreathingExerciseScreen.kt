@@ -37,7 +37,25 @@ fun BreathingExerciseScreen(
     }
     
     val infiniteTransition = rememberInfiniteTransition(label = "breathe")
-    // Animating from 0 to 19000 ms to represent a full 19s breathing cycle (4s inhale, 7s hold, 8s exhale)
+    
+    // Smooth, organic scale animation using keyframes
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = androidx.compose.animation.core.keyframes {
+                durationMillis = 19000
+                0.5f at 0
+                1.0f at 4000 using FastOutSlowInEasing // Inhale
+                1.0f at 11000 using androidx.compose.animation.core.LinearEasing // Hold
+                0.5f at 19000 using FastOutSlowInEasing // Exhale
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "scale"
+    )
+
+    // Parallel animation for tracking phase time
     val cycleTime by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 19000f,
@@ -52,23 +70,6 @@ fun BreathingExerciseScreen(
         cycleTime < 4000f -> "Inhale"
         cycleTime < 11000f -> "Hold"
         else -> "Exhale"
-    }
-
-    // Scale mapping based on cycle time for smooth transitions
-    val scale = when {
-        cycleTime < 4000f -> {
-            // Inhale: 0.5 to 1.0 over 4s
-            0.5f + (cycleTime / 4000f) * 0.5f
-        }
-        cycleTime < 11000f -> {
-            // Hold: Stay at 1.0 for 7s
-            1.0f
-        }
-        else -> {
-            // Exhale: 1.0 to 0.5 over 8s
-            val exhaleProgress = (cycleTime - 11000f) / 8000f
-            1.0f - exhaleProgress * 0.5f
-        }
     }
     
     val primaryColor = MaterialTheme.colorScheme.primary

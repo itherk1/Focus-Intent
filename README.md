@@ -13,6 +13,10 @@ Instead of directly opening distractive apps (like social media), Focus Intent i
 - **Screen Time**: Track and analyze your digital wellbeing insights.
 - **Responsive Layout**: Designed for phones, foldables, and tablets.
 
+## Version 1.5.1
+- **Session Tracking Fix**: Fixed an issue where the background timer would improperly continue counting session time if the screen was locked or the app was closed directly to recent apps.
+- **Allowance Reset**: Ensures the "Breathing" intercept window correctly reappears immediately on subsequent visits if the user closes the app (returns to home) or locks their device, rather than persisting a blanket allowance.
+
 ## Version 1.5.0
 - **App Intercept Stability**: Completely redesigned the Accessibility foreground tracking layer to instantly react to complex splash screens and deeply nested launchers (specifically fixing bypass vectors for apps like Bumble).
 - **Smooth Organic Animation**: Rewrote the Breathing Intercept screen's scale animations using native Compose Keyframes and complex path easing formulas resulting in an ultra-smooth, organic expansion and contraction mirroring human breath.

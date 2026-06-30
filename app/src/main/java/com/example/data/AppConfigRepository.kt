@@ -41,6 +41,10 @@ class AppConfigRepository(private val context: Context) {
         temporarilyAllowedApps[packageName] = System.currentTimeMillis() + durationMinutes * 60 * 1000L
     }
     
+    fun clearAppAllowance(packageName: String) {
+        temporarilyAllowedApps.remove(packageName)
+    }
+    
     fun clearAllAllowancesExcept(packageName: String) {
         val iterator = temporarilyAllowedApps.iterator()
         while(iterator.hasNext()) {

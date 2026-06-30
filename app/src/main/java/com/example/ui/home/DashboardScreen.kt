@@ -42,6 +42,7 @@ fun DashboardScreen(
     val context = LocalContext.current
     var isAccessibilityEnabled by remember { mutableStateOf(true) }
 
+    var showProminentDisclosure by remember { mutableStateOf(false) }
     var showRestrictedSettingsHelp by remember { mutableStateOf(false) }
 
     var hasUsagePermission by remember { mutableStateOf(com.example.utils.UsageStatsHelper.hasUsageStatsPermission(context)) }
@@ -67,6 +68,38 @@ fun DashboardScreen(
         }
     }
 
+    if (showProminentDisclosure) {
+        AlertDialog(
+            onDismissRequest = { showProminentDisclosure = false },
+            title = { Text("Accessibility Service Required") },
+            text = {
+                Column {
+                    Text("Focus Intent needs your permission to use the AccessibilityService API.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("Why is this needed?", fontWeight = FontWeight.Bold)
+                    Text("This permission is used solely to detect when you launch the apps you have chosen to block, allowing Focus Intent to intervene and show the breathing screen instead.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("Privacy & Data", fontWeight = FontWeight.Bold)
+                    Text("Focus Intent does not collect, store, or share any of your personal data or screen content. The service runs entirely locally on your device.")
+                }
+            },
+            confirmButton = {
+                Button(onClick = { 
+                    showProminentDisclosure = false
+                    // After disclosure, show the Restricted Settings help if they might need it
+                    showRestrictedSettingsHelp = true
+                }) {
+                    Text("I Agree")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProminentDisclosure = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showRestrictedSettingsHelp) {
         AlertDialog(
             onDismissRequest = { showRestrictedSettingsHelp = false },
@@ -81,10 +114,12 @@ fun DashboardScreen(
                     Text("3. Tap the 3 dots (⋮) in the top-right corner.")
                     Text("4. Tap 'Allow restricted settings'.")
                     Text("5. Then come back here and turn on Accessibility.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("If you don't see the 3 dots, just click 'Go to Settings' below and enable Focus Intent.")
                 }
             },
             confirmButton = {
-                TextButton(onClick = { 
+                Button(onClick = { 
                     showRestrictedSettingsHelp = false
                     AccessibilityHelper.openAccessibilitySettings(context) 
                 }) {
@@ -123,7 +158,7 @@ fun DashboardScreen(
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        modifier = Modifier.fillMaxWidth().clickable { showRestrictedSettingsHelp = true }
+                        modifier = Modifier.fillMaxWidth().clickable { showProminentDisclosure = true }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Accessibility Service Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)

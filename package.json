@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "adm-zip": "^0.5.18",
+    "archiver": "^8.0.0",
+    "canvas": "^3.2.3",
+    "jimp": "^1.6.1"
+  }
+}

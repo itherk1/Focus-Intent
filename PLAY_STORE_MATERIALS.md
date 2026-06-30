@@ -5,16 +5,20 @@ Here are all the necessary materials you need to submit **Focus Intent** to the 
 ## 1. Store Listing Text
 
 **App Name (Max 30 chars):** 
-`Focus Intent - App Blocker`
+`Focus Intent - Scroll Break` 
+*(Alternative ideas: "Scroll Interrupter", "Doomscroll Blocker")*
+
+**Package Name:**
+`com.aistudio.focusintent.xyzqpz`
 
 **Short Description (Max 80 chars):**
-`Stop doomscrolling and reclaim your time with a mindful app blocker & tracker.`
+`Interrupt bed-rotting & unconscious doomscrolling with mindful interventions.`
 
 **Full Description (Max 4000 chars):**
 ```text
-Reclaim your focus, reduce screen time, and break bad digital habits with Focus Intent!
+Reclaim your focus, stop bed-rotting, and break unconscious doomscrolling habits with Focus Intent!
 
-Focus Intent is a mindful app blocker designed to help you stop doomscrolling, avoid distractions, and be more productive. Instead of locking you out entirely, it introduces intentional friction, helping you become aware of your subconscious habits and making it easier to step away from addictive apps.
+Focus Intent is not just a standard app blocker—it's a scroll interrupter designed to catch you before you fall down the rabbit hole. Instead of just locking you out entirely, it introduces intentional friction and breathing exercises, helping you become aware of your subconscious habits and breaking the cycle of non-stop scrolling.
 
 🚀 Key Features:
 • Smart App Blocking: Select the apps that distract you the most (social media, games, news) and block them when you need to focus.

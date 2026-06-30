@@ -4,8 +4,10 @@ import android.accessibilityservice.AccessibilityService
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
@@ -28,11 +30,24 @@ class FocusAccessibilityService : AccessibilityService() {
     private var trackingJob: Job? = null
     private var currentRealForegroundPackage: String? = null
     private var foregroundStartTime: Long = 0
+    
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                trackingJob?.cancel()
+                currentRealForegroundPackage?.let { configRepo.clearAppAllowance(it) }
+                currentRealForegroundPackage = null
+            }
+        }
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         configRepo = AppConfigRepository(applicationContext)
         createNotificationChannel()
+        
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        registerReceiver(screenStateReceiver, filter)
     }
     
     private fun createNotificationChannel() {
@@ -52,9 +67,8 @@ class FocusAccessibilityService : AccessibilityService() {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
             
-            // Exclude our own app
+            // Exclude our own app (e.g. BreatheActivity or Dashboard)
             if (packageName == applicationContext.packageName) {
-                currentRealForegroundPackage = packageName
                 return
             }
             
@@ -78,6 +92,7 @@ class FocusAccessibilityService : AccessibilityService() {
 
             if (isLauncher) {
                 trackingJob?.cancel()
+                currentRealForegroundPackage?.let { configRepo.clearAppAllowance(it) }
                 currentRealForegroundPackage = null
                 return
             }
@@ -85,15 +100,17 @@ class FocusAccessibilityService : AccessibilityService() {
             scope.launch {
                 val blockedApps = configRepo.blockedApps.firstOrNull() ?: emptySet()
                 
-                if (blockedApps.contains(packageName)) {
-                    val wasTemporarilyAllowed = configRepo.isAppTemporarilyAllowed(packageName)
+                // If they switched to a different real app, we need to update foreground package
+                // and stop previous tracking
+                if (packageName != currentRealForegroundPackage) {
+                    trackingJob?.cancel()
+                    currentRealForegroundPackage = packageName
                     
-                    if (packageName != currentRealForegroundPackage) {
-                        currentRealForegroundPackage = packageName
+                    if (blockedApps.contains(packageName)) {
+                        val wasTemporarilyAllowed = configRepo.isAppTemporarilyAllowed(packageName)
                         
                         if (!wasTemporarilyAllowed) {
                             foregroundStartTime = System.currentTimeMillis()
-                            trackingJob?.cancel()
                             startContinuousTracking(packageName)
                             
                             // Block the app by launching our intercept screen
@@ -103,23 +120,14 @@ class FocusAccessibilityService : AccessibilityService() {
                             }
                             startActivity(intent)
                         } else {
-                            // It was allowed (e.g., returned from a keyboard or share sheet).
-                            if (trackingJob?.isActive != true) {
-                                foregroundStartTime = System.currentTimeMillis() // Reset time for the active session
-                                startContinuousTracking(packageName)
-                            }
-                        }
-                    } else {
-                        // Same package foreground event (could be a sub-activity like a subreddit)
-                        // Make sure tracking is active if it was accidentally stopped
-                        if (wasTemporarilyAllowed && trackingJob?.isActive != true) {
+                            foregroundStartTime = System.currentTimeMillis() // Reset time for the active session
                             startContinuousTracking(packageName)
-                        } else if (!wasTemporarilyAllowed) {
-                            // Allowance expired while they were in the app!
-                            // Or they triggered an event and the allowance is strictly gone.
-                            // However, we don't want to just block them randomly in-app unless a continuous timer does it.
-                            // So we rely on startContinuousTracking for in-app breaks.
                         }
+                    }
+                } else {
+                    // Same package foreground event (could be a sub-activity like a subreddit)
+                    if (blockedApps.contains(packageName) && trackingJob?.isActive != true) {
+                        startContinuousTracking(packageName)
                     }
                 }
             }
@@ -134,10 +142,6 @@ class FocusAccessibilityService : AccessibilityService() {
             while (true) {
                 delay(30_000) // check every 30 seconds
                 
-                // Keep the temporary allowance alive as long as they are actively using it
-                // so they aren't blocked randomly when sharing reels.
-                configRepo.allowAppTemporarily(packageName, 5) 
-
                 val usageTime = System.currentTimeMillis() - foregroundStartTime
                 val minutes = (usageTime / (60 * 1000L)).toInt()
                 
@@ -190,6 +194,11 @@ class FocusAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        try {
+            unregisterReceiver(screenStateReceiver)
+        } catch (e: Exception) {
+            // Ignored
+        }
         supervisorJob.cancel()
     }
 }
